@@ -1,0 +1,112 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'license'
+
+group = 'net.satago'
+
+version='1.0.0'
+
+license {
+    header rootProject.file('LICENSE-HEADER')
+    strictCheck true
+}
+
+repositories {
+    jcenter()
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.12'
+
+    def tapestry_version='5.3.7'
+
+    compile "org.apache.tapestry:tapestry-jpa:${tapestry_version}"
+    compile 'javax.enterprise:cdi-api:1.2'
+
+    testCompile 'junit:junit:4.12'
+}
+
+jar {
+    manifest {
+        attributes 'Tapestry-Module-Classes': 'net.satago.tapestry5.jpa.TransactionalUnitsModule'
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+jar.dependsOn sourcesJar
+jar.dependsOn javadocJar
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+def pomFragments = {
+    developers {
+        developer {
+            id "dmitrygusev"
+            name "Dmitry Gusev"
+            email "dmitry@anjlab.com"
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            
+            pom.withXml {
+                def root = asNode()
+                
+                def deps = root.children().find {
+                    it.name().localPart == 'dependencies'
+                }
+                
+                root.children().remove(deps)
+                
+                root.appendNode('description', project.description)
+
+                def license = root.appendNode('licenses').appendNode('license')
+                license.appendNode("name", "The Apache Software License, Version 2.0")
+                license.appendNode("url", "http://www.apache.org/licenses/LICENSE-2.0.txt")
+                license.appendNode("distribution", "repo")
+
+                root.children().last() + pomFragments
+                
+                def pom = new XmlParser().parse(project.file("build/poms/pom-default.xml"))
+                
+                pom.dependencies.each {
+                    root.append(it)
+                }
+            }
+        }
+    }
+}
