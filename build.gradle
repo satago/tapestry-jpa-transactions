@@ -18,7 +18,7 @@ apply plugin: 'license'
 
 group = 'net.satago'
 
-version='1.0.0'
+version='1.0.1'
 
 license {
     header rootProject.file('LICENSE-HEADER')
