@@ -9,6 +9,10 @@ buildscript {
     }
 }
 
+plugins {
+    id "com.jfrog.bintray" version "1.3.1"
+}
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
@@ -109,4 +113,18 @@ publishing {
             }
         }
     }
+}
+
+bintray {
+    user = "$bintray_user"
+    key = "$bintray_api_key"
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = 'tapestry-jpa-transactions'
+        userOrg = 'satago' // an optional organization name when the repo belongs to one of the user's orgs
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/satago/tapestry-jpa-transactions.git'
+    }
+    dryRun = false // whether to run this as dry-run, without deploying
 }
