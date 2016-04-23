@@ -1,0 +1,13 @@
+This product includes software developed by
+Satago Ltd (https://www.satago.com/).
+
+Copyright 2015 Satago Ltd.
+
+This product includes software developed by
+The Apache Software Foundation (http://www.apache.org/).
+
+This software depends on the Java Persistence API, developed by the EJB 3.0
+software expert group as part of JSR 220.
+See http://www.oracle.com/technetwork/java/javaee/tech/persistence-jsp-140049.html
+for more information. Various JPA implementations are licensed under terms provided
+by each respective JPA provider.
