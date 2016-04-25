@@ -22,8 +22,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.PersistenceContext;
 
-import net.satago.tapestry5.jpa.internal.TransactionalUnitsImpl.VoidInvokable;
-
 import org.apache.tapestry5.internal.jpa.CommitAfterMethodAdvice;
 import org.apache.tapestry5.internal.jpa.JpaInternalUtils;
 import org.apache.tapestry5.ioc.Invokable;
@@ -31,9 +29,11 @@ import org.apache.tapestry5.jpa.EntityManagerManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.satago.tapestry5.jpa.internal.TransactionalUnitsImpl.VoidInvokable;
+
 /**
  * @see CommitAfterMethodAdvice
- * 
+ *
  * @author dmitrygusev
  *
  */
@@ -47,6 +47,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
     private List<Invokable<Boolean>> beforeCommit;
     private List<Runnable> afterCommit;
+    private EntityTransaction transaction;
 
     private static ThreadLocal<Stack<TransactionalUnit<?>>> currentUnit =
             new ThreadLocal<Stack<TransactionalUnit<?>>>()
@@ -71,14 +72,21 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
         invoke();
     }
 
+    public boolean hasActiveTransaction()
+    {
+        return transaction.isActive();
+    }
+
     @Override
     public T invoke()
     {
-        final boolean topLevel = currentUnit.get().isEmpty();
+        final boolean topActive = currentUnit.get().stream()
+                .filter(transactionalUnit -> transactionalUnit.hasActiveTransaction())
+                .count() == 0;
 
         currentUnit.get().push(this);
 
-        if (!topLevel)
+        if (!topActive)
         {
             if (logger.isWarnEnabled())
             {
@@ -88,7 +96,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
         try
         {
-            final EntityTransaction transaction = getTransaction();
+            transaction = getTransaction();
 
             if (transaction != null && !transaction.isActive())
             {
@@ -97,7 +105,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
             T result = tryInvoke(transaction, invokable);
 
-            if (topLevel)
+            if (topActive)
             {
                 // Success or checked exception:
 
