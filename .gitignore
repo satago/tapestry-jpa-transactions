@@ -10,3 +10,5 @@ gradle-app.setting
 .classpath
 .project
 .settings
+/test-output/
+
