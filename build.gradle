@@ -49,7 +49,7 @@ dependencies {
 		// JpaModule doesn't run without servlet-api, perhaps something we should address later
 		testRuntime 'javax.servlet:javax.servlet-api:3.0.1'
 
-		testRuntime 'org.eclipse.persistence:eclipselink:2.5.1'
+		testRuntime 'org.eclipse.persistence:eclipselink:2.6.2'
 		testRuntime 'com.h2database:h2:1.3.175'
 
 }
