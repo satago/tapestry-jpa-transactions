@@ -19,14 +19,6 @@ public class CommitCounter {
 	@PostPersist
 	@PostUpdate
 	private void updateVersion(Object entity) {
-        // EntityTransaction tx = entityManager.getTransaction();
-        // if (!tx.isActive())
-        // tx.begin();
-        // VersionedThing versionedThing = new VersionedThing();
-        // versionedThing.setId(1);
-        // entityManager.persist(versionedThing);
-        // tx.commit();
-
         transactionalUnits.runInTransaction(new Runnable()
         {
             @Override

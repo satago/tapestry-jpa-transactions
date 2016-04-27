@@ -36,10 +36,10 @@ public class TopLevelServiceImpl implements TopLevelService {
 	@Override
 	@CommitAfter
 	public void createThingOneAndTwo(String nameOne, String nameTwo) {
-		nestedService.createThingTwo(nameTwo);
 		ThingOne thingOne = new ThingOne();
 		thingOne.setName(nameOne);
 		em.persist(thingOne);
+        nestedService.createThingTwo(nameTwo);
 	}
 
 	@Override

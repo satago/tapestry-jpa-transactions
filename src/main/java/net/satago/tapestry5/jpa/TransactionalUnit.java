@@ -76,6 +76,8 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
     {
         final boolean topLevel = currentUnit.get().isEmpty();
 
+        currentUnit.get().push(this);
+
         if (!topLevel)
         {
             if (logger.isWarnEnabled())
@@ -95,9 +97,8 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
             T result = tryInvoke(transaction, invokable);
 
-            if (currentUnit.get().isEmpty())
+            if (topLevel && currentUnit.get().peek().equals(this))
             {
-                currentUnit.get().push(this);
                 // Success or checked exception:
 
                 if (transaction != null && transaction.isActive())
@@ -112,14 +113,12 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
                     fireAfterCommit();
                 }
             }
-            else
-                currentUnit.get().push(this);
 
             return result;
         }
         finally
         {
-            currentUnit.get().pop();
+            currentUnit.get().remove(this);
         }
     }
 
