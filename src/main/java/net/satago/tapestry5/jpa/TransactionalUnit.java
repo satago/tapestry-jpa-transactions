@@ -47,7 +47,6 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
     private List<Invokable<Boolean>> beforeCommit;
     private List<Runnable> afterCommit;
-	private EntityTransaction transaction;
 
     private static ThreadLocal<Stack<TransactionalUnit<?>>> currentUnit =
             new ThreadLocal<Stack<TransactionalUnit<?>>>()
@@ -72,19 +71,12 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
         invoke();
     }
 
-	public boolean hasActiveTransaction() {
-		return transaction.isActive();
-	}
-
     @Override
     public T invoke()
     {
-		final boolean topActive = currentUnit.get().stream()
-			.filter(transactionalUnit -> transactionalUnit.hasActiveTransaction()).count() == 0;
+        final boolean topLevel = currentUnit.get().isEmpty();
 
-        currentUnit.get().push(this);
-
-		if (!topActive)
+        if (!topLevel)
         {
             if (logger.isWarnEnabled())
             {
@@ -94,7 +86,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
         try
         {
-			transaction = getTransaction();
+            final EntityTransaction transaction = getTransaction();
 
             if (transaction != null && !transaction.isActive())
             {
@@ -103,8 +95,9 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
             T result = tryInvoke(transaction, invokable);
 
-			if (topActive)
+            if (currentUnit.get().isEmpty())
             {
+                currentUnit.get().push(this);
                 // Success or checked exception:
 
                 if (transaction != null && transaction.isActive())
@@ -119,6 +112,8 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
                     fireAfterCommit();
                 }
             }
+            else
+                currentUnit.get().push(this);
 
             return result;
         }
