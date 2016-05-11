@@ -21,6 +21,9 @@ public interface TopLevelService {
     @CommitAfter
 	void createThingOneAndTwo(String nameOne, String nameTwo);
 
+    @CommitAfter
 	void createThingOneThenTwo(final String nameOne, final String nameTwo);
+
+    void createThingOneThenTwoWithNestedCommitAfter(String nameOne, String nameTwo);
 
 }

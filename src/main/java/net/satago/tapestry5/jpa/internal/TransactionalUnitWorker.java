@@ -13,7 +13,13 @@
  */
 package net.satago.tapestry5.jpa.internal;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+
+import net.satago.tapestry5.jpa.EntityTransactionManager;
 
 import org.apache.tapestry5.jpa.EntityManagerManager;
 import org.apache.tapestry5.jpa.annotations.CommitAfter;
@@ -26,15 +32,16 @@ import org.apache.tapestry5.services.transform.TransformationSupport;
 
 public class TransactionalUnitWorker implements ComponentClassTransformWorker2
 {
-    private final MethodAdvice shared;
+    private final Map<String, MethodAdvice> methodAdvices;
 
-    private final EntityManagerManager manager;
-
-    public TransactionalUnitWorker(EntityManagerManager manager)
+    public TransactionalUnitWorker(EntityManagerManager manager,
+            EntityTransactionManager transactionManager)
     {
-        this.manager = manager;
-
-        shared = new TransactionalUnitMethodAdvice(manager, null);
+        methodAdvices = new HashMap<>(manager.getEntityManagers().size());
+        for (Map.Entry<String, EntityManager> entry : manager.getEntityManagers().entrySet())
+            methodAdvices.put(entry.getKey(), new TransactionalUnitMethodAdvice(transactionManager,
+                    entry.getKey()));
+        methodAdvices.put(null, new TransactionalUnitMethodAdvice(transactionManager, null));
     }
 
     @Override
@@ -45,9 +52,7 @@ public class TransactionalUnitWorker implements ComponentClassTransformWorker2
         {
             PersistenceContext annotation = method.getAnnotation(PersistenceContext.class);
 
-            MethodAdvice advice = annotation == null ? shared : new TransactionalUnitMethodAdvice(manager, annotation);
-
-            method.addAdvice(advice);
+            method.addAdvice(methodAdvices.get(annotation == null ? null : annotation.unitName()));
         }
     }
 }

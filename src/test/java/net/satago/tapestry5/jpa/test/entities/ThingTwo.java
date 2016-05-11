@@ -15,12 +15,15 @@ package net.satago.tapestry5.jpa.test.entities;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import net.satago.tapestry5.jpa.test.CommitCounter;
+
 @Entity
-// @EntityListeners(CommitCounter.class)
+@EntityListeners(CommitCounter.class)
 public class ThingTwo
 {
 	private Integer id;

@@ -13,37 +13,43 @@
  */
 package net.satago.tapestry5.jpa.test.entities;
 
+import java.util.Date;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.persistence.Version;
 
 @Entity
 public class VersionedThing
 {
-	private Integer id;
+    @Id
+    // @GeneratedValue(strategy = GenerationType.AUTO)
+    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // @Column(name = "id", insertable = true, updatable = true, unique = true, nullable = false)
+    private Integer id;
 
-	@Id
-	public Integer getId()
+    @Version
+    private Integer version;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date lastTouched;
+
+    public Integer getId()
 	{
 		return id;
 	}
 
-	public void setId(Integer id)
+    public void setId(Integer id)
 	{
 		this.id = id;
 	}
 
-	private Integer version;
 
-	@Version
-	public Integer getVersion()
+    public int getVersion()
 	{
 		return version;
-	}
-
-	public void setVersion(Integer version)
-	{
-		this.version = version;
 	}
 
     @Override
@@ -64,6 +70,21 @@ public class VersionedThing
     public int hashCode()
     {
         return (getId() != null ? getId().hashCode() : 0);
+    }
+
+    public Date getLastTouched()
+    {
+        return lastTouched;
+    }
+
+    public void setLastTouched(Date lastTouched)
+    {
+        this.lastTouched = lastTouched;
+    }
+
+    public void setVersion(int version)
+    {
+        this.version = version;
     }
 
 }

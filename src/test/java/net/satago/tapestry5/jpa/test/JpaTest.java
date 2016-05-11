@@ -14,6 +14,7 @@
 package net.satago.tapestry5.jpa.test;
 
 import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -32,6 +33,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import net.satago.tapestry5.jpa.TransactionalUnitsModule;
 import net.satago.tapestry5.jpa.test.entities.ThingOne;
 import net.satago.tapestry5.jpa.test.entities.ThingTwo;
+import net.satago.tapestry5.jpa.test.entities.VersionedThing;
 
 import org.apache.tapestry5.internal.test.PageTesterContext;
 import org.apache.tapestry5.ioc.Registry;
@@ -41,9 +43,7 @@ import org.apache.tapestry5.jpa.modules.JpaModule;
 import org.apache.tapestry5.modules.TapestryModule;
 import org.apache.tapestry5.services.ApplicationGlobals;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 public class JpaTest
@@ -53,7 +53,7 @@ public class JpaTest
 	private EntityManagerManager entityManagerManager;
 	private TopLevelService topLevelService;
 
-	@BeforeSuite
+    // @BeforeSuite
 	public final void setupRegistry()
 	{
 		RegistryBuilder builder = new RegistryBuilder();
@@ -77,9 +77,10 @@ public class JpaTest
 		return entityManagerManager.getEntityManagers().values().iterator().next();
 	}
 
-	@AfterSuite
+    // @AfterSuite
 	public final void shutdownRegistry()
 	{
+        registry.cleanupThread();
 		registry.shutdown();
 		registry = null;
 	}
@@ -87,6 +88,7 @@ public class JpaTest
 	@BeforeMethod
 	public final void beginTransaction()
 	{
+        setupRegistry();
 		EntityTransaction tx = getEntityManager().getTransaction();
 		if (!tx.isActive()) tx.begin();
 	}
@@ -97,6 +99,7 @@ public class JpaTest
 		if (transaction.isActive()) transaction.rollback();
 		clearDatabase();
         getEntityManager().clear();
+        shutdownRegistry();
 	}
 
 	// based on http://www.objectpartners.com/2010/11/09/unit-testing-your-persistence-tier-code/
@@ -139,26 +142,37 @@ public class JpaTest
 		topLevelService.createThingOneAndTwo("one", "two");
 		assertEquals(1, getInstances(ThingOne.class).size());
 		assertEquals(1, getInstances(ThingTwo.class).size());
-        // assertTrue(getEntityManager().find(VersionedThing.class, 1).getVersion() > 0);
+        assertTrue(getEntityManager().find(VersionedThing.class, 1).getVersion() > 0);
 	}
 
 	@Test(expectedExceptions = RollbackException.class)
-	public void rollbackTopFails() {
+    public void rollbackNestedFails()
+    {
 		topLevelService.createThingOneAndTwo("one", null);
 	}
 
 	@Test(expectedExceptions = RollbackException.class)
-	public void rollbackNestedFails() {
+    public void rollbackTopFails()
+    {
 		topLevelService.createThingOneAndTwo(null, "two");
 	}
 
 	@Test
-	public void sequentialCommitUsingRegisterAfterCommit() {
+	public void sequentialCommitUsingInvokeAfterCommit() {
 		topLevelService.createThingOneThenTwo("one", "two");
-		// TODO how to best assert that this was the result of two separate commits?
 		assertEquals(1, getInstances(ThingOne.class).size());
 		assertEquals(1, getInstances(ThingTwo.class).size());
+        assertTrue(getEntityManager().find(VersionedThing.class, 1).getVersion() > 1);
 	}
+
+    @Test
+    public void sequentialCommitUsingInvokeAfterCommitAndCommitAfterAnnotation()
+    {
+        topLevelService.createThingOneThenTwoWithNestedCommitAfter("one", "two");
+        assertEquals(1, getInstances(ThingOne.class).size());
+        assertEquals(1, getInstances(ThingTwo.class).size());
+        assertTrue(getEntityManager().find(VersionedThing.class, 1).getVersion() > 1);
+    }
 
 	@Test
 	public void sequentialRollbackAndAbortUsingRegisterAfterCommit() {

@@ -15,22 +15,25 @@ package net.satago.tapestry5.jpa.test;
 
 import javax.persistence.EntityManager;
 
-import net.satago.tapestry5.jpa.TransactionalUnit;
-import net.satago.tapestry5.jpa.TransactionalUnits;
+import net.satago.tapestry5.jpa.EntityTransactionManager;
 import net.satago.tapestry5.jpa.test.entities.ThingOne;
+import net.satago.tapestry5.jpa.test.entities.ThingTwo;
 
+import org.apache.tapestry5.ioc.Invokable;
 import org.apache.tapestry5.jpa.annotations.CommitAfter;
 
 public class TopLevelServiceImpl implements TopLevelService {
 
 	private final EntityManager em;
 	private final NestedService nestedService;
-	private final TransactionalUnits transactionalUnits;
+    private final EntityTransactionManager entityTransactionManager;
 
-	public TopLevelServiceImpl(EntityManager em, NestedService nestedService, TransactionalUnits transactionalUnits) {
+    public TopLevelServiceImpl(EntityManager em, NestedService nestedService,
+            EntityTransactionManager transactionalUnits)
+    {
 		this.em = em;
 		this.nestedService = nestedService;
-		this.transactionalUnits = transactionalUnits;
+		this.entityTransactionManager = transactionalUnits;
 	}
 
 	@Override
@@ -42,25 +45,51 @@ public class TopLevelServiceImpl implements TopLevelService {
         nestedService.createThingTwo(nameTwo);
 	}
 
-	@Override
-	@CommitAfter
-	public void createThingOneThenTwo(final String nameOne, final String nameTwo) {
-		transactionalUnits.runInTransaction(new Runnable() {
+    @Override
+    @CommitAfter
+    public void createThingOneThenTwo(final String nameOne, final String nameTwo)
+    {
+        entityTransactionManager.invokeAfterCommit(null, new Invokable<Boolean>()
+        {
+            @Override
+            public Boolean invoke()
+            {
+                // nestedService.createThingTwo(nameTwo);
+                ThingTwo thingTwo = new ThingTwo();
+                thingTwo.setName(nameTwo);
+                em.persist(thingTwo);
+                return true;
+            }
+        });
+        ThingOne thingOne = new ThingOne();
+        thingOne.setName(nameOne);
+        em.persist(thingOne);
+    }
 
-			@Override
-			public void run() {
-				TransactionalUnit.registerAfterCommit(new Runnable() {
-					@Override
-					public void run() {
-						nestedService.createThingTwo(nameTwo);
-					}
-				});
-				ThingOne thingOne = new ThingOne();
-				thingOne.setName(nameOne);
-				em.persist(thingOne);
+    @Override
+    @CommitAfter
+    public void createThingOneThenTwoWithNestedCommitAfter(final String nameOne,
+            final String nameTwo)
+    {
+        entityTransactionManager.runInTransaction(null, new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                entityTransactionManager.invokeAfterCommit(null, new Invokable<Boolean>()
+                {
+                    @Override
+                    public Boolean invoke()
+                    {
+                        nestedService.createThingTwo(nameTwo);
+                        return true;
+                    }
+                });
+                ThingOne thingOne = new ThingOne();
+                thingOne.setName(nameOne);
+                em.persist(thingOne);
+            }
+        });
 
-			}
-		});
-
-	}
+    }
 }

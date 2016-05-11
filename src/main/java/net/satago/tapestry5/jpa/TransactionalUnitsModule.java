@@ -15,7 +15,6 @@ package net.satago.tapestry5.jpa;
 
 import net.satago.tapestry5.jpa.internal.TransactionalUnitJpaTransactionAdvisor;
 import net.satago.tapestry5.jpa.internal.TransactionalUnitWorker;
-import net.satago.tapestry5.jpa.internal.TransactionalUnitsImpl;
 
 import org.apache.tapestry5.ioc.MappedConfiguration;
 import org.apache.tapestry5.ioc.OrderedConfiguration;
@@ -31,7 +30,7 @@ public class TransactionalUnitsModule
 
     public static void bind(ServiceBinder binder)
     {
-        binder.bind(TransactionalUnits.class, TransactionalUnitsImpl.class);
+        binder.bind(EntityTransactionManager.class);
         binder.bind(JpaTransactionAdvisor.class, TransactionalUnitJpaTransactionAdvisor.class)
                 .withId(TransactionalUnitJpaTransactionAdvisor.class.getSimpleName());
     }
