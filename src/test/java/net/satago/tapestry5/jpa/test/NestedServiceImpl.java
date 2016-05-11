@@ -11,21 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.satago.tapestry5.jpa;
+package net.satago.tapestry5.jpa.test;
 
-import net.satago.tapestry5.jpa.TransactionalUnit.TransactionalUnitBuilder;
+import javax.persistence.EntityManager;
 
-import org.apache.tapestry5.ioc.Invokable;
+import net.satago.tapestry5.jpa.test.entities.ThingTwo;
 
-public interface TransactionalUnits
-{
+public class NestedServiceImpl implements NestedService {
+	private final EntityManager em;
 
-    <T> T invokeInTransaction(Invokable<T> invokable);
+	public NestedServiceImpl(EntityManager em) {
+		this.em = em;
+	}
 
-    void runInTransaction(Runnable runnable);
-
-    <T> TransactionalUnitBuilder<T> prepareInvoke(Invokable<T> invokable);
-
-    <T> TransactionalUnitBuilder<T> prepareRun(Runnable runnable);
+	public void createThingTwo(String nameTwo) {
+		ThingTwo thingTwo = new ThingTwo();
+		thingTwo.setName(nameTwo);
+		em.persist(thingTwo);
+	}
 
 }

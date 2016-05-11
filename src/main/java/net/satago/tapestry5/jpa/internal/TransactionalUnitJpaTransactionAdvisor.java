@@ -14,8 +14,13 @@
 package net.satago.tapestry5.jpa.internal;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+
+import net.satago.tapestry5.jpa.EntityTransactionManager;
 
 import org.apache.tapestry5.ioc.MethodAdviceReceiver;
 import org.apache.tapestry5.jpa.EntityManagerManager;
@@ -25,15 +30,16 @@ import org.apache.tapestry5.plastic.MethodAdvice;
 
 public class TransactionalUnitJpaTransactionAdvisor implements JpaTransactionAdvisor
 {
-    private final MethodAdvice shared;
+    private final Map<String, MethodAdvice> methodAdvices;
 
-    private final EntityManagerManager manager;
-
-    public TransactionalUnitJpaTransactionAdvisor(EntityManagerManager manager)
+    public TransactionalUnitJpaTransactionAdvisor(EntityManagerManager manager,
+            EntityTransactionManager transactionManager)
     {
-        this.manager = manager;
-
-        shared = new TransactionalUnitMethodAdvice(manager, null);
+        methodAdvices = new HashMap<>(manager.getEntityManagers().size());
+        for (Map.Entry<String, EntityManager> entry : manager.getEntityManagers().entrySet())
+            methodAdvices.put(entry.getKey(), new TransactionalUnitMethodAdvice(transactionManager,
+                    entry.getKey()));
+        methodAdvices.put(null, new TransactionalUnitMethodAdvice(transactionManager, null));
     }
 
     @Override
@@ -45,10 +51,8 @@ public class TransactionalUnitJpaTransactionAdvisor implements JpaTransactionAdv
             {
                 PersistenceContext annotation = receiver.getMethodAnnotation(m, PersistenceContext.class);
 
-                MethodAdvice advice =
-                        annotation == null ? shared : new TransactionalUnitMethodAdvice(manager, annotation);
-
-                receiver.adviseMethod(m, advice);
+                receiver.adviseMethod(m,
+                        methodAdvices.get(annotation == null ? null : annotation.unitName()));
             }
         }
     }

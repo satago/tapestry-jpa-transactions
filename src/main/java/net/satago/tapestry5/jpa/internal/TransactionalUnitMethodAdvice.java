@@ -13,37 +13,34 @@
  */
 package net.satago.tapestry5.jpa.internal;
 
-import javax.persistence.PersistenceContext;
-
-import net.satago.tapestry5.jpa.TransactionalUnit;
+import net.satago.tapestry5.jpa.EntityTransactionManager;
 
 import org.apache.tapestry5.ioc.Invokable;
-import org.apache.tapestry5.jpa.EntityManagerManager;
 import org.apache.tapestry5.plastic.MethodAdvice;
 import org.apache.tapestry5.plastic.MethodInvocation;
 
 public class TransactionalUnitMethodAdvice implements MethodAdvice
 {
-    private EntityManagerManager manager;
-    private PersistenceContext context;
+    private EntityTransactionManager manager;
+    private String context;
 
-    public TransactionalUnitMethodAdvice(
-            EntityManagerManager manager, PersistenceContext annotation)
+    public TransactionalUnitMethodAdvice(EntityTransactionManager manager, String context)
     {
         this.manager = manager;
-        this.context = annotation;
+        this.context = context;
     }
 
     @Override
     public void advise(final MethodInvocation invocation)
     {
-        new TransactionalUnit<Object>(manager, context, new Invokable<Object>()
+        manager.invokeInTransaction(context, new Invokable<MethodInvocation>()
         {
             @Override
-            public Object invoke()
+            public MethodInvocation invoke()
             {
                 return invocation.proceed();
             }
-        }).invoke();
+        });
+
     }
 }
