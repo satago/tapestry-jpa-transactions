@@ -4,15 +4,17 @@ Advanced transaction support for tapestry JPA applications
 This library extends functionality of official [`tapestry-jpa` integration](https://tapestry.apache.org/integrating-with-jpa.html).
 
 # How to use (basics)
-_This library is not yet published to public repositories. In order to use it you should build it yourself:_
 
-    git clone https://github.com/satago/tapestry-jpa-transactions.git
-    cd tapestry-jpa-transactions
-    ./gradlew clean install
+Add jcenter repository to your project, i.e. in `build.gradle`:
+```groovy
+repositories {
+    jcenter()
+}
+```
 
-Now you can add it as a dependency to your Tapestry5 project:
+Then add the library as a dependency to your Tapestry5 project:
 
-    compile 'net.satago:tapestry-jpa-transactions:1.0.0'
+    compile 'net.satago:tapestry-jpa-transactions:1.0.2'
 
 This library contains a [drop-in tapestry module](https://tapestry.apache.org/autoloading-modules.html), so you don't need to do anything else to make it work, except for when you need simple CDI support for JPA 2.1 entity listeners (read below).
 
