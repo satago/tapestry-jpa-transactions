@@ -13,9 +13,6 @@
  */
 package net.satago.tapestry5.jpa.misc;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.tapestry5.ioc.MethodAdviceReceiver;
 import org.apache.tapestry5.ioc.annotations.Advise;
 import org.apache.tapestry5.ioc.annotations.Match;
@@ -23,6 +20,9 @@ import org.apache.tapestry5.ioc.annotations.SubModule;
 import org.apache.tapestry5.jpa.EntityManagerSource;
 import org.apache.tapestry5.plastic.MethodAdvice;
 import org.apache.tapestry5.plastic.MethodInvocation;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Workaround for <a href="https://issues.apache.org/jira/browse/TAP5-2499">TAP5-2499</a>
@@ -43,7 +43,7 @@ public class Workaround_TAP5_2499
     {
         MethodAdvice advice = new MethodAdvice()
         {
-            private final Map<Object, Boolean> createdEMFs = new ConcurrentHashMap<>();
+            private final Map<Object, Boolean> createdEMFs = new ConcurrentHashMap<Object, Boolean>();
 
             @Override
             public void advise(MethodInvocation invocation)

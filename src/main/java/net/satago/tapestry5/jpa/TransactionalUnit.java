@@ -13,23 +13,19 @@
  */
 package net.satago.tapestry5.jpa;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Stack;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-import javax.persistence.PersistenceContext;
-
+import net.satago.tapestry5.jpa.internal.PersistenceContextImpl;
 import net.satago.tapestry5.jpa.internal.TransactionalUnitsImpl.VoidInvokable;
-
 import org.apache.tapestry5.internal.jpa.CommitAfterMethodAdvice;
 import org.apache.tapestry5.internal.jpa.JpaInternalUtils;
 import org.apache.tapestry5.ioc.Invokable;
 import org.apache.tapestry5.jpa.EntityManagerManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
+import javax.persistence.PersistenceContext;
+import java.util.*;
 
 /**
  * @see CommitAfterMethodAdvice
@@ -55,7 +51,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
                 protected Stack<TransactionalUnit<?>> initialValue()
                 {
                     return new Stack<TransactionalUnit<?>>();
-                };
+                }
             };
 
     public TransactionalUnit(EntityManagerManager manager, PersistenceContext annotation, Invokable<T> invokable)
@@ -80,11 +76,15 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
         if (!topLevel)
         {
+            // TODO Check if this.annotation's PU name is the same as top-level's (disable the check via symbol?)
+
             if (logger.isWarnEnabled())
             {
                 logger.warn("Nested transaction detected, current depth = " + currentUnit.get().size(), new Throwable());
             }
         }
+
+        boolean popDone = false;
 
         try
         {
@@ -104,11 +104,24 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
                 if (transaction != null && transaction.isActive())
                 {
                     fireBeforeCommit(transaction);
+
+                    //  TODO Check if some other transactional units were added from beforeCommit
+
+                    //  In case if more units were added from beforeCommit,
+                    //  or even other beforeCommit callbacks were added for current unit
+                    //  they won't be invoked here, because it's too late
                 }
 
                 if (transaction != null && transaction.isActive())
                 {
                     transaction.commit();
+
+                    //  More transactional units could be added from afterCommit, so pop early
+                    //  to let them become top-level units
+
+                    pop();
+
+                    popDone = true;
 
                     fireAfterCommit();
                 }
@@ -118,10 +131,42 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
         }
         finally
         {
-            currentUnit.get().pop();
+            if (!popDone)
+            {
+                pop();
+            }
         }
     }
 
+    private void pop()
+    {
+        TransactionalUnit<?> unit = currentUnit.get().pop();
+
+        //  If it's not a top-level unit we need to pop its beforeCommit/afterCommit
+        //  callbacks and attach them to the new head-unit, because callback will only
+        //  be invoked on the top-level unit
+
+        if (!currentUnit.get().isEmpty())
+        {
+            TransactionalUnit topUnit = currentUnit.get().peek();
+
+            if (unit.beforeCommit != null)
+            {
+                topUnit.addBeforeCommit(unit.beforeCommit);
+
+                unit.beforeCommit.clear();
+            }
+
+            if (unit.afterCommit != null)
+            {
+                topUnit.addAfterCommit(unit.afterCommit);
+
+                unit.afterCommit.clear();
+            }
+        }
+    }
+
+    //  TODO Deprecate in favor of a new instance method in `TransactionalUnits`
     public static void registerBeforeCommit(Invokable<Boolean> invokable)
     {
         if (currentUnit.get().isEmpty())
@@ -129,11 +174,10 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
             throw new IllegalStateException("Callback handler should be registered from inside of transactional unit");
         }
 
-        // TODO Remove this callback before retry, because it will be re-added again during retry
-
-        currentUnit.get().peek().addBeforeCommit(Arrays.asList(invokable));
+        currentUnit.get().peek().addBeforeCommit(Collections.singletonList(invokable));
     }
 
+    //  TODO Deprecate in favor of a new instance method in `TransactionalUnits`
     public static void registerAfterCommit(Runnable runnable)
     {
         if (currentUnit.get().isEmpty())
@@ -141,9 +185,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
             throw new IllegalStateException("Callback handler should be registered from inside of transactional unit");
         }
 
-        // TODO Remove this callback before retry, because it will be re-added again during retry
-
-        currentUnit.get().peek().addAfterCommit(Arrays.asList(runnable));
+        currentUnit.get().peek().addAfterCommit(Collections.singletonList(runnable));
     }
 
     /* default */TransactionalUnit<T> addBeforeCommit(List<Invokable<Boolean>> callbacks)
@@ -206,7 +248,7 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
 
             // Success or checked exception:
 
-            if (beforeCommitSucceeded != null && !beforeCommitSucceeded.booleanValue())
+            if (beforeCommitSucceeded != null && !beforeCommitSucceeded)
             {
                 rollbackTransaction(transaction);
 
@@ -268,6 +310,8 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
         private final EntityManagerManager entityManagerManager;
         private final Invokable<T> invokable;
 
+        private String persistenceUnitName;
+
         private List<Invokable<Boolean>> beforeCommit;
         private List<Runnable> afterCommit;
 
@@ -308,9 +352,20 @@ public class TransactionalUnit<T> implements Runnable, Invokable<T>
             return this;
         }
 
+        public TransactionalUnitBuilder<T> persistenceUnitName(String persistenceUnitName)
+        {
+            this.persistenceUnitName = persistenceUnitName;
+
+            return this;
+        }
+
         public TransactionalUnit<T> build()
         {
-            return new TransactionalUnit<>(entityManagerManager, null, invokable)
+            final PersistenceContext annotation = persistenceUnitName != null
+                    ? new PersistenceContextImpl(persistenceUnitName)
+                    : null;
+
+            return new TransactionalUnit<T>(entityManagerManager, annotation, invokable)
                     .addBeforeCommit(beforeCommit)
                     .addAfterCommit(afterCommit);
         }

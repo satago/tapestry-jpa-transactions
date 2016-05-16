@@ -22,7 +22,10 @@ apply plugin: 'license'
 
 group = 'net.satago'
 
-version='1.0.1'
+version = '1.0.2'
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
 
 license {
     header rootProject.file('LICENSE-HEADER')
@@ -38,12 +41,23 @@ repositories {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.12'
 
-    def tapestry_version='5.3.7'
+    def tapestry_version = '5.3.8'
 
     compile "org.apache.tapestry:tapestry-jpa:${tapestry_version}"
     compile 'javax.enterprise:cdi-api:1.2'
 
-    testCompile 'junit:junit:4.12'
+    testCompile 'org.testng:testng:6.9.10'
+    testRuntime "org.apache.tapestry:tapestry-test:${tapestry_version}"
+
+    testRuntime 'org.eclipse.persistence:eclipselink:2.5.1'
+
+    def hibernate_version='5.1.0.Final'
+
+    testCompile "org.hibernate:hibernate-entitymanager:${hibernate_version}"
+    //  Version of javassist used by Hibernate 5
+    testRuntime 'org.javassist:javassist:3.20.0-GA'
+
+    testRuntime 'com.h2database:h2:1.4.191'
 }
 
 jar {
@@ -86,16 +100,16 @@ publishing {
             from components.java
             artifact sourcesJar
             artifact javadocJar
-            
+
             pom.withXml {
                 def root = asNode()
-                
+
                 def deps = root.children().find {
                     it.name().localPart == 'dependencies'
                 }
-                
+
                 root.children().remove(deps)
-                
+
                 root.appendNode('description', project.description)
 
                 def license = root.appendNode('licenses').appendNode('license')
@@ -104,9 +118,9 @@ publishing {
                 license.appendNode("distribution", "repo")
 
                 root.children().last() + pomFragments
-                
+
                 def pom = new XmlParser().parse(project.file("build/poms/pom-default.xml"))
-                
+
                 pom.dependencies.each {
                     root.append(it)
                 }
