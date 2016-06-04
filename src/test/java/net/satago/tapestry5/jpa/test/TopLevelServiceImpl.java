@@ -17,7 +17,6 @@ import javax.persistence.EntityManager;
 
 import net.satago.tapestry5.jpa.EntityTransactionManager;
 import net.satago.tapestry5.jpa.test.entities.ThingOne;
-import net.satago.tapestry5.jpa.test.entities.ThingTwo;
 
 import org.apache.tapestry5.ioc.Invokable;
 import org.apache.tapestry5.jpa.annotations.CommitAfter;
@@ -54,10 +53,7 @@ public class TopLevelServiceImpl implements TopLevelService {
             @Override
             public Boolean invoke()
             {
-                // nestedService.createThingTwo(nameTwo);
-                ThingTwo thingTwo = new ThingTwo();
-                thingTwo.setName(nameTwo);
-                em.persist(thingTwo);
+                nestedService.createThingTwo(nameTwo);
                 return true;
             }
         });
