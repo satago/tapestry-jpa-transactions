@@ -42,6 +42,7 @@ import org.apache.tapestry5.jpa.EntityManagerManager;
 import org.apache.tapestry5.jpa.modules.JpaModule;
 import org.apache.tapestry5.modules.TapestryModule;
 import org.apache.tapestry5.services.ApplicationGlobals;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -134,6 +135,7 @@ public class JpaTest
 		EntityManager em = getEntityManager();
 		CriteriaBuilder qb = em.getCriteriaBuilder();
 		CriteriaQuery<T> query = qb.createQuery(type);
+        query.select(query.from(type));
 		return em.createQuery(query).getResultList();
 	}
 
@@ -175,9 +177,11 @@ public class JpaTest
     }
 
 	@Test
-	public void sequentialRollbackAndAbortUsingRegisterAfterCommit() {
+    public void sequentialRollbackAndAbortUsingInvokeAfterCommit()
+    {
 		try {
 			topLevelService.createThingOneThenTwo(null, "two");
+            Assert.fail();
 		} catch (RollbackException e) {
 		}
 		assertEquals(0, getInstances(ThingOne.class).size());
