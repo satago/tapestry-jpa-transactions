@@ -1,40 +1,16 @@
-buildscript {
-    repositories {
-        jcenter()
-        mavenLocal()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
-    }
-}
-
-plugins {
-    id "com.jfrog.bintray" version "1.3.1"
-}
-
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
 apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'license'
 
 group = 'net.satago'
 
-version = '1.0.2'
+version = '1.0.3'
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
 
-license {
-    header rootProject.file('LICENSE-HEADER')
-    strictCheck true
-}
-
 repositories {
-    jcenter()
-    mavenLocal()
     mavenCentral()
 }
 
@@ -84,61 +60,50 @@ artifacts {
     archives javadocJar
 }
 
-def pomFragments = {
-    developers {
-        developer {
-            id "dmitrygusev"
-            name "Dmitry Gusev"
-            email "dmitry@anjlab.com"
-        }
-    }
-}
+uploadArchives {
+    repositories {
+        mavenDeployer {
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
+            repository(url: nexusRepositoryUrl) {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
 
-            pom.withXml {
-                def root = asNode()
+            snapshotRepository(url: nexusSnapshotRepositoryUrl) {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
 
-                def deps = root.children().find {
-                    it.name().localPart == 'dependencies'
+            pom.project {
+                name 'tapestry-jpa-transactions'
+                packaging 'jar'
+                description 'Advanced transaction support for tapestry JPA applications'
+                url 'https://github.com/satago/tapestry-jpa-transactions'
+
+                issueManagement {
+                    url 'https://github.com/satago/tapestry-jpa-transactions/issues'
+                    system 'GitHub Issues'
                 }
 
-                root.children().remove(deps)
+                scm {
+                    url 'https://github.com/satago/tapestry-jpa-transactions.git'
+                    connection 'scm:git://github.com/satago/tapestry-jpa-transactions.git'
+                    developerConnection 'scm:git://github.com/satago/tapestry-jpa-transactions.git'
+                }
 
-                root.appendNode('description', project.description)
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
 
-                def license = root.appendNode('licenses').appendNode('license')
-                license.appendNode("name", "The Apache Software License, Version 2.0")
-                license.appendNode("url", "http://www.apache.org/licenses/LICENSE-2.0.txt")
-                license.appendNode("distribution", "repo")
-
-                root.children().last() + pomFragments
-
-                def pom = new XmlParser().parse(project.file("build/poms/pom-default.xml"))
-
-                pom.dependencies.each {
-                    root.append(it)
+                developers {
+                    developer {
+                        id "dmitrygusev"
+                        name "Dmitry Gusev"
+                        email "dmitry@anjlab.com"
+                    }
                 }
             }
         }
     }
-}
-
-bintray {
-    user = "$bintray_user"
-    key = "$bintray_api_key"
-    publications = ['mavenJava']
-    pkg {
-        repo = 'maven'
-        name = 'tapestry-jpa-transactions'
-        userOrg = 'satago' // an optional organization name when the repo belongs to one of the user's orgs
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/satago/tapestry-jpa-transactions.git'
-    }
-    dryRun = false // whether to run this as dry-run, without deploying
 }
