@@ -5,16 +5,11 @@ This library extends functionality of official [`tapestry-jpa` integration](http
 
 # How to use (basics)
 
-Add jcenter repository to your project, i.e. in `build.gradle`:
-```groovy
-repositories {
-    jcenter()
-}
-```
+Choose a maven repository, private or public, and add the `nexusUsername`, `nexusPassword`, `nexusRepository` and `nexusSnapshotReository` values to your gradle.properties file
 
 Then add the library as a dependency to your Tapestry5 project:
 
-    compile 'net.satago:tapestry-jpa-transactions:1.0.2'
+    compile 'net.satago:tapestry-jpa-transactions:1.0.3'
 
 This library contains a [drop-in tapestry module](https://tapestry.apache.org/autoloading-modules.html), so you don't need to do anything else to make it work, except for when you need simple CDI support for JPA 2.1 entity listeners (read below).
 
